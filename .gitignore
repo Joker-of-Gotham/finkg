@@ -1,0 +1,37 @@
+# 地址、账号、密码 —— 只应存在于本机
+financial_graph.local.json
+financial_graph.local.yaml
+financial_graph.local.yml
+
+# 环境档案：本机部署有哪些数据表与检索工具，属于内部信息
+finkg.environment.md
+
+# 会话产物（研究数据，不入库）
+financial-graph-sessions/
+.financial-graph-sessions/
+
+# install.py --here 在本仓库内生成的宿主镜像，是 skills/finkg 的副本
+.agents/
+.claude/
+.codex/
+.gemini/
+.opencode/
+.windsurf/
+.github/skills/
+.cursor/skills/
+
+# 本机 agent 状态
+.cursor/hooks/state/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

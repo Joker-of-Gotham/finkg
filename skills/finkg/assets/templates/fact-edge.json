@@ -1,0 +1,103 @@
+[
+  {
+    "subject": "E-ganfeng",
+    "predicate": "向客户供应",
+    "object": { "kind": "entity", "entity": "E-catl" },
+    "epistemic": "reported",
+    "confidence": "high",
+    "known_at": "2025-11-20",
+    "harvest_id": "h-0007",
+    "quote": "赣锋锂业 | 宁德时代 | 长期供货协议 | 2025-2027 | 指数联动定价",
+    "target": {
+      "kind": "edge",
+      "from": "E-ganfeng",
+      "to": "E-catl",
+      "relation": "向客户长协供应电池级碳酸锂",
+      "layer": "supply_operation",
+      "mechanism": "长协锁量、价格随基准指数联动，锂价波动经采购成本直接进入宁德时代营业成本",
+      "attrs": {
+        "合同类型": "长期协议",
+        "有效期间": "2025-2027",
+        "计价方式": "指数联动",
+        "锁量": "不低于8万吨/年",
+        "占采购比": "约15%",
+        "数据来源": "供货协议公告"
+      }
+    }
+  },
+  {
+    "subject": "E-holder-1",
+    "predicate": "持有股份",
+    "object": { "kind": "entity", "entity": "E-catl" },
+    "epistemic": "reported",
+    "confidence": "high",
+    "harvest_id": "h-0005",
+    "quote": "厦门瑞庭投资有限公司 | 1,086,000,000 | 24.68 | 境内非国有法人 | 20251231",
+    "target": {
+      "kind": "edge",
+      "from": "E-holder-1",
+      "to": "E-catl",
+      "relation": "作为第一大股东直接持有股份",
+      "layer": "legal_ownership",
+      "mechanism": "持股比例决定股东大会表决权与董事提名能力，构成实际控制的基础",
+      "attrs": {
+        "持股比例(%)": 24.68,
+        "持股数量(股)": 1086000000,
+        "股东性质": "境内非国有法人",
+        "持股方式": "直接",
+        "报告期": "2025-12-31",
+        "是否一致行动": "是"
+      }
+    }
+  },
+  {
+    "subject": "E-policy-density",
+    "predicate": "对产业设定准入门槛",
+    "object": { "kind": "entity", "entity": "E-industry-battery" },
+    "epistemic": "reported",
+    "confidence": "medium",
+    "harvest_id": "h-0011",
+    "quote": "自2025年1月1日起，乘用车动力电池系统能量密度低于125Wh/kg的车型不再进入推荐目录",
+    "target": {
+      "kind": "edge",
+      "from": "E-policy-density",
+      "to": "E-industry-battery",
+      "relation": "提高动力电池能量密度准入门槛",
+      "layer": "policy_regulation",
+      "mechanism": "准入门槛上移使低能量密度产品退出推荐目录，需求向高镍高压实路线集中，改变全行业原料配比",
+      "attrs": {
+        "发布机构": "工业和信息化部",
+        "生效时间": "2025-01-01",
+        "适用范围": "乘用车动力电池系统",
+        "约束阈值": "125Wh/kg",
+        "过渡期": "无"
+      }
+    }
+  },
+  {
+    "subject": "E-tesla",
+    "predicate": "影响盈利预期",
+    "object": { "kind": "entity", "entity": "E-catl-a" },
+    "epistemic": "inference",
+    "confidence": "medium",
+    "basis_fact_ids": ["F00042", "F00051"],
+    "rule": "整车客户排产变化 → 分部出货量 → 分部收入与毛利 → 卖方盈利预测调整 → 每股收益预期 → 股价",
+    "harvest_id": "h-0013",
+    "quote": "2025年动力电池系统分部对前五大客户销售收入占该分部营业收入的 41.3%",
+    "target": {
+      "kind": "edge",
+      "from": "E-tesla",
+      "to": "E-catl-a",
+      "relation": "经订单节奏改变市场盈利预期",
+      "layer": "expectation_valuation",
+      "mechanism": "客户排产变化先反映为卖方盈利预测调整，再通过一致预期EPS影响股价；若客户转向自供或改用其他技术路线，此传导减弱",
+      "attrs": {
+        "传导时滞": "1-2个季度",
+        "观察指标": "一致预期EPS",
+        "方向": "同向",
+        "敞口": "前五大客户占分部收入41.3%",
+        "失效条件": "客户自建电池产能投产"
+      }
+    }
+  }
+]

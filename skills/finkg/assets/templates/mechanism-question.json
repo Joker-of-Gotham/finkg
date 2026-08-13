@@ -1,0 +1,33 @@
+[
+  {
+    "id": "M1",
+    "question": "锂价如何经采购成本与分部毛利传导到盈利与估值",
+    "from": "E-lithium",
+    "to": "E-catl-a",
+    "min_hops": 5,
+    "max_hops": 12,
+    "independent": 2,
+    "directed": false,
+    "layers": ["supply_operation", "financial_capital", "expectation_valuation"]
+  },
+  {
+    "id": "M2",
+    "question": "能量密度准入政策如何经技术路线与原料配比改变上游需求结构",
+    "from": "E-policy-density",
+    "to": "E-lithium",
+    "min_hops": 3,
+    "independent": 2,
+    "directed": true,
+    "layers": ["policy_regulation", "demand_market", "supply_operation"]
+  },
+  {
+    "id": "M3",
+    "question": "客户集中度经应收账款与信用敞口形成的二阶反馈",
+    "from": "E-tesla",
+    "to": "E-catl",
+    "min_hops": 4,
+    "independent": 2,
+    "directed": false,
+    "layers": ["demand_market", "financial_capital", "risk_feedback"]
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "E-catl", "kind": "Company", "anchor": true,
+    "name": "宁德时代新能源科技股份有限公司", "short": "宁德时代",
+    "aliases": ["CATL", "Contemporary Amperex Technology Co., Limited"],
+    "ids": { "证券代码": "300750.SZ" },
+    "note": "与全资子公司「宁德时代新能源科技有限公司」区分；港股 03750.HK 另建 Stock 实体"
+  },
+  {
+    "id": "E-catl-a", "kind": "Stock", "anchor": true,
+    "name": "宁德时代A股", "short": "宁德时代A股",
+    "ids": { "代码": "300750.SZ", "交易所": "SZSE", "交易币种": "CNY" },
+    "note": "发行人为 E-catl"
+  },
+  {
+    "id": "E-szse", "kind": "Exchange",
+    "name": "深圳证券交易所", "short": "深交所"
+  },
+  {
+    "id": "E-segment-power", "kind": "Segment",
+    "name": "宁德时代动力电池系统分部", "short": "动力电池分部"
+  },
+  {
+    "id": "E-lithium", "kind": "Commodity",
+    "name": "电池级碳酸锂", "short": "碳酸锂",
+    "note": "规格：电池级 99.5%；工业级价格与用途不同，另计"
+  },
+  {
+    "id": "E-ganfeng", "kind": "Company",
+    "name": "江西赣锋锂业集团股份有限公司", "short": "赣锋锂业",
+    "ids": { "证券代码": "002460.SZ" }
+  },
+  {
+    "id": "E-tesla", "kind": "Company",
+    "name": "特斯拉公司", "short": "特斯拉",
+    "ids": { "代码": "TSLA" }
+  },
+  {
+    "id": "E-industry-battery", "kind": "Industry",
+    "name": "新能源汽车动力电池产业", "short": "动力电池产业"
+  },
+  {
+    "id": "E-policy-density", "kind": "Policy",
+    "name": "新能源汽车动力电池能量密度准入要求", "short": "能量密度准入政策"
+  }
+]

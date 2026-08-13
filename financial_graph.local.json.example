@@ -1,0 +1,17 @@
+{
+  "_说明": "复制为 financial_graph.local.json（已 gitignore），填成你自己环境的值。也可以跑 `python <skill>/scripts/fg.py setup` 交互生成。所有地址、账号、密码都只存在于这个文件或 FG_* 环境变量里，不会进入仓库。",
+
+  "lazysearch_url": "http://<你的 LazySearch 主机>:<端口>",
+
+  "neo4j_url": "http://<你的 Neo4j 主机>:7474",
+  "neo4j_user": "<用户名>",
+  "neo4j_password": "<密码>",
+  "neo4j_allow_http_auth": true,
+
+  "_neo4j_allow_http_auth 说明": "只有在局域网用明文 HTTP 连 Neo4j 时才设 true。用 HTTPS 或连本机回环地址时不需要。",
+
+  "_可选": "下面这些有默认值，只在要改时才写",
+  "neo4j_database": "",
+  "sessions_dir": "financial-graph-sessions",
+  "lazysearch_timeout": 600
+}

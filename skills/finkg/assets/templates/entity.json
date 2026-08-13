@@ -1,0 +1,45 @@
+[
+  {
+    "id": "E-catl",
+    "kind": "Company",
+    "name": "宁德时代新能源科技股份有限公司",
+    "short": "宁德时代",
+    "aliases": ["CATL", "Contemporary Amperex Technology Co., Limited"],
+    "ids": {
+      "证券代码": "300750.SZ",
+      "公司代码": "10554205",
+      "统一社会信用代码": ""
+    },
+    "anchor": true,
+    "note": "与全资子公司「宁德时代新能源科技有限公司」区分；港股为 03750.HK，另建实体"
+  },
+  {
+    "id": "E-catl-a",
+    "kind": "Stock",
+    "name": "宁德时代A股",
+    "short": "宁德时代A股",
+    "ids": { "代码": "300750.SZ", "交易所": "SZSE", "交易币种": "CNY" },
+    "anchor": true,
+    "note": "发行人为 E-catl；港股 03750.HK 是另一个 Stock 实体"
+  },
+  {
+    "id": "E-ganfeng",
+    "kind": "Company",
+    "name": "江西赣锋锂业集团股份有限公司",
+    "short": "赣锋锂业",
+    "ids": { "证券代码": "002460.SZ" }
+  },
+  {
+    "id": "E-lithium",
+    "kind": "Commodity",
+    "name": "电池级碳酸锂",
+    "short": "碳酸锂",
+    "note": "规格：电池级 99.5%；工业级另计，价格与用途不同"
+  },
+  {
+    "id": "E-policy-density",
+    "kind": "Policy",
+    "name": "新能源汽车动力电池能量密度准入要求",
+    "short": "能量密度准入政策"
+  }
+]

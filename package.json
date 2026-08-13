@@ -1,0 +1,58 @@
+{
+  "name": "finkg",
+  "version": "1.0.0",
+  "description": "Agent Skill for building deep, traceable Chinese financial knowledge graphs in Neo4j from LazySearch retrieval — rich node dossiers, mechanism-bearing Chinese edges, 10+ hop evidence paths, cell-level information-utilization accounting, and staged human-in-the-loop with no gates or keys.",
+  "keywords": [
+    "agent-skill",
+    "skill",
+    "claude-code",
+    "cursor",
+    "codex",
+    "opencode",
+    "knowledge-graph",
+    "neo4j",
+    "financial-analysis",
+    "graph-rag",
+    "lazysearch",
+    "金融图谱",
+    "知识图谱"
+  ],
+  "homepage": "https://github.com/Joker-of-Gotham/finkg#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Joker-of-Gotham/finkg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Joker-of-Gotham/finkg/issues"
+  },
+  "license": "MIT",
+  "author": "Joker-of-Gotham",
+  "scripts": {
+    "check": "python install.py --check",
+    "install-skill": "python install.py --all",
+    "test": "python tests/test_finkg.py"
+  },
+  "agentSkills": {
+    "specVersion": "1.0",
+    "skills": [
+      {
+        "name": "finkg",
+        "path": "skills/finkg",
+        "entry": "skills/finkg/SKILL.md"
+      }
+    ]
+  },
+  "engines": {
+    "python": ">=3.10"
+  },
+  "files": [
+    "skills/",
+    "install.py",
+    "install.sh",
+    "install.ps1",
+    "docs/",
+    "examples/",
+    "README.md",
+    "LICENSE"
+  ]
+}

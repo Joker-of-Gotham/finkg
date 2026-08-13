@@ -1,0 +1,46 @@
+---
+description: 用 LazySearch 检索并落盘、与用户逐步共建一张写进 Neo4j 的中文金融图谱（节点属性按维度分组、边带具体中文动作与机制、纵深由机制问题驱动、信息利用率逐格核账）。当用户要构建、扩展、审计或修复金融知识图谱，或要追查某条金融传导链路时使用。
+globs: **/*.{json,jsonl,md,py,csv,cypher}
+alwaysApply: false
+---
+# finkg（指针）
+
+先完整读 **`skills/finkg/SKILL.md`**，其余 reference 按需读（渐进式披露）：
+`LAZYSEARCH.md` / `NODE_PROFILE.md` / `EDGE_SEMANTICS.md` / `DEPTH.md` / `HITL.md` / `QUALITY.md` / `NEO4J.md`。
+
+唯一 CLI 是 skill 目录下的 `scripts/fg.py`，把它记为 `$FG`（仓库内开发时即 `skills/finkg/scripts/fg.py`）：
+
+```bash
+python $FG doctor
+python $FG brief
+python $FG search "<问题>"
+python $FG harvest show h-0001 --part cells --unused-only
+python $FG harvest mine h-0001 --facts facts.json --done
+python $FG compile
+python $FG usage
+python $FG depth --min-hops 6
+python $FG quality
+python $FG neo4j ensure-db
+python $FG neo4j load
+```
+
+## 不能违反
+
+- **先落盘再使用。** 事实必须有 `harvest_id` 和能在该次收割原文里找到的 `quote`；
+  不要凭记忆改写数字或原文。
+- **信息要用尽。** LazySearch 的 `final_answer` 常只占返回信息量的 4%，原始表在 `history` 里。
+  每个数据单元格要么变成事实，要么 `harvest dispose` 写明理由。静默丢弃不算交代。
+- **公司 ≠ 股票 ≠ 上市记录**，三个节点用发行/上市关系连接。
+- **属性用中文点分层级**（`财务.利润表.2025年报.营业总收入`），第一段是维度组；不造空属性。
+- **关系是具体中文金融动作 + 一句话机制 + 量化属性。** 「相关/影响/关联」判为不可分析。
+- **纵深服务于机制问题**，不为跳数而跳数；只有业务实体之间的边算跳。
+- **人在回路用 AskQuestion 在对话里问**（摆当前判断、证据样本、真实取舍、建议、为何现在），
+  答复用 `fg.py align` / `fg.py answer` 记进明文台账。
+- **没有 Gate、签名、令牌、哈希链、密钥。** `quality` 的 `ok=false` 只意味着「还不能对外
+  声称达标」，不阻止任何人类决定；要装中间快照用 `neo4j load --force`。
+- **质量只判内容，不判格式**：不检查 key 齐不齐、不算工件哈希、不把节点数量当目标。
+- **一会话一 Neo4j 库**；这台 Neo4j 上有很多其他项目的库，动手前确认 `--database`。
+- **Windows**：先 `$env:PYTHONIOENCODING="utf-8"`；落盘用 `--out-file`，不要用 `>`。
+- 不自主下单、开户、授信、估值签字或对外发布结论。
+
+改动 `skills/finkg/` 之后跑 `python install.py --check` 与 `python tests/test_finkg.py`。

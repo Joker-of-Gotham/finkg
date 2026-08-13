@@ -1,0 +1,23 @@
+[
+  {
+    "id": "M1",
+    "question": "锂价如何经采购成本与分部毛利传导到宁德时代的盈利与估值",
+    "from": "E-lithium",
+    "to": "E-catl-a",
+    "min_hops": 4,
+    "max_hops": 12,
+    "independent": 1,
+    "directed": false,
+    "layers": ["supply_operation", "financial_capital", "expectation_valuation"]
+  },
+  {
+    "id": "M2",
+    "question": "能量密度准入政策如何经技术路线改变碳酸锂需求结构",
+    "from": "E-policy-density",
+    "to": "E-lithium",
+    "min_hops": 2,
+    "independent": 1,
+    "directed": true,
+    "layers": ["policy_regulation", "demand_market"]
+  }
+]

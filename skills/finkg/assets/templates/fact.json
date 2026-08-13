@@ -1,0 +1,55 @@
+[
+  {
+    "subject": "E-catl",
+    "predicate": "营业总收入",
+    "object": { "kind": "number", "value": 423701834000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": {
+      "consolidation": "合并报表",
+      "standard": "中国会计准则",
+      "source_table": "<取数用的库.表，从 harvest provenance 里抄>",
+      "data_status": "已调整最终版"
+    },
+    "epistemic": "reported",
+    "confidence": "high",
+    "known_at": "2026-03-10",
+    "harvest_id": "h-0001",
+    "quote": "一、营业总收入 | 4,237.02 | 423,701,834,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.利润表.2025年报.营业总收入" }
+  },
+  {
+    "subject": "E-catl",
+    "predicate": "毛利率",
+    "object": { "kind": "number", "value": 26.26, "percent": true, "unit": "%" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表" },
+    "epistemic": "inference",
+    "confidence": "high",
+    "basis_fact_ids": ["F00001", "F00002"],
+    "rule": "毛利率 =（营业总收入 − 营业成本）/ 营业总收入",
+    "harvest_id": "h-0001",
+    "quote": "其中：营业成本 | 3,123.83 | 312,383,297,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.盈利能力.2025年报.毛利率" }
+  },
+  {
+    "subject": "E-catl-a",
+    "predicate": "收盘价",
+    "object": { "kind": "number", "value": 1343.0, "unit": "元/股", "currency": "CNY" },
+    "period": { "kind": "instant", "at": "2026-08-12", "label": "2026-08-12收盘" },
+    "basis": { "provider": "QuantWeb", "venue": "SZSE", "interval": "1d", "adjustment": "未复权" },
+    "epistemic": "observed",
+    "confidence": "high",
+    "harvest_id": "h-0003",
+    "quote": "2026-08-12 | 600519.SH | 1346.50 | 1356.88 | 1332.51 | 1343.00",
+    "target": { "kind": "prop", "node": "E-catl-a", "key": "行情.2026-08-12.收盘价" }
+  },
+  {
+    "subject": "E-catl",
+    "predicate": "会计准则",
+    "object": { "kind": "text", "text": "中国企业会计准则" },
+    "epistemic": "reported",
+    "harvest_id": "h-0001",
+    "quote": "报表类型 | 年度报告",
+    "target": { "kind": "prop", "node": "E-catl", "key": "报告.会计准则" }
+  }
+]

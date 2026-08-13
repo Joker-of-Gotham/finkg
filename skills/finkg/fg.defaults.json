@@ -1,0 +1,6 @@
+{
+  "_说明": "只放与部署无关的默认值。端点地址、用户名、密码一律不写在这里——它们属于你自己的环境，请写进工作区 financial_graph.local.json（已 gitignore）或 FG_* 环境变量。跑 `fg.py setup` 可以生成该文件。",
+  "lazysearch_mcp_path": "/mcp",
+  "lazysearch_timeout": 600,
+  "sessions_dir": "financial-graph-sessions"
+}

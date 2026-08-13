@@ -1,0 +1,12 @@
+{
+  "name": "finkg",
+  "version": "1.0.0",
+  "description": "构建、扩展或审计中文金融知识图谱：LazySearch 全量落盘 → 可回溯原子事实 → Neo4j 深图。",
+  "contextFileName": "AGENTS.md",
+  "skills": [
+    {
+      "name": "finkg",
+      "path": "skills/finkg"
+    }
+  ]
+}

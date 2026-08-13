@@ -1,0 +1,102 @@
+[
+  {
+    "subject": "E-catl", "predicate": "营业总收入",
+    "object": { "kind": "number", "value": 423701834000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表", "standard": "中国会计准则",
+               "source_table": "财务报表库.利润表", "data_status": "已调整最终版" },
+    "epistemic": "reported", "confidence": "high", "known_at": "2026-03-10",
+    "quote": "一、营业总收入 | 4,237.02 | 423,701,834,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.利润表.2025年报.营业总收入" }
+  },
+  {
+    "subject": "E-catl", "predicate": "营业成本",
+    "object": { "kind": "number", "value": 312383297000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表", "source_table": "财务报表库.利润表" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "其中：营业成本 | 3,123.83 | 312,383,297,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.利润表.2025年报.营业成本" }
+  },
+  {
+    "subject": "E-catl", "predicate": "研发费用",
+    "object": { "kind": "number", "value": 22146581000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "研发费用 | 221.47 | 22,146,581,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.利润表.2025年报.研发费用" }
+  },
+  {
+    "subject": "E-catl", "predicate": "归属于母公司股东的净利润",
+    "object": { "kind": "number", "value": 72201282000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "归属于母公司股东的净利润 | 722.01 | 72,201,282,000.00",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.利润表.2025年报.归母净利润" }
+  },
+  {
+    "subject": "E-catl", "predicate": "毛利率",
+    "object": { "kind": "number", "value": 26.26, "percent": true, "unit": "%" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "consolidation": "合并报表" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "毛利率 | 26.26% | 23.15% | +3.11 pp",
+    "target": { "kind": "prop", "node": "E-catl", "key": "财务.盈利能力.2025年报.毛利率" }
+  },
+  {
+    "subject": "E-catl", "predicate": "证券代码",
+    "object": { "kind": "text", "text": "300750.SZ" },
+    "epistemic": "reported",
+    "quote": "证券代码 | 300750.SZ",
+    "target": { "kind": "prop", "node": "E-catl", "key": "身份.证券代码" }
+  },
+  {
+    "subject": "E-catl", "predicate": "记账币种",
+    "object": { "kind": "text", "text": "CNY" },
+    "epistemic": "reported",
+    "quote": "币种 | CNY",
+    "target": { "kind": "prop", "node": "E-catl", "key": "报告.记账币种" }
+  },
+  {
+    "subject": "E-catl", "predicate": "最新年报公告日",
+    "object": { "kind": "text", "text": "2026-03-10" },
+    "epistemic": "reported",
+    "quote": "最新公告日 | 2026-03-10",
+    "target": { "kind": "prop", "node": "E-catl", "key": "报告.最新年报公告日" }
+  },
+  {
+    "subject": "E-catl-a", "predicate": "基本每股收益",
+    "object": { "kind": "number", "value": 16.14, "unit": "元/股", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "基本每股收益（元/股） | 16.14 | 16.14",
+    "target": { "kind": "prop", "node": "E-catl-a", "key": "估值.2025年报.基本每股收益" }
+  },
+  {
+    "subject": "E-catl-a", "predicate": "挂牌板块",
+    "object": { "kind": "text", "text": "创业板" },
+    "epistemic": "reported",
+    "quote": "板块 | 创业板",
+    "target": { "kind": "prop", "node": "E-catl-a", "key": "上市.板块" }
+  },
+  {
+    "subject": "E-segment-power", "predicate": "主营业务收入",
+    "object": { "kind": "number", "value": 291244000000.0, "unit": "元", "currency": "CNY" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "source_table": "分部数据库.主营业务构成", "口径": "主营业务构成" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "动力电池系统 | 2,912.44 | 68.74 | 24.18",
+    "target": { "kind": "prop", "node": "E-segment-power", "key": "业务.2025年报.主营业务收入" }
+  },
+  {
+    "subject": "E-segment-power", "predicate": "毛利率",
+    "object": { "kind": "number", "value": 24.18, "percent": true, "unit": "%" },
+    "period": { "kind": "duration", "start": "2025-01-01", "end": "2025-12-31", "label": "2025年报" },
+    "basis": { "source_table": "分部数据库.主营业务构成" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "动力电池系统 | 2,912.44 | 68.74 | 24.18",
+    "target": { "kind": "prop", "node": "E-segment-power", "key": "业务.2025年报.毛利率" }
+  }
+]

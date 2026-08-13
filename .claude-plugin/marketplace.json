@@ -1,0 +1,33 @@
+{
+  "name": "finkg",
+  "owner": {
+    "name": "Joker-of-Gotham",
+    "url": "https://github.com/Joker-of-Gotham"
+  },
+  "metadata": {
+    "description": "金融知识图谱共建工具箱",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "finkg",
+      "source": "./",
+      "description": "LazySearch 全量落盘 → 可回溯原子事实 → Neo4j 深图；节点属性按维度组丰富，边带机制与量化属性，纵深由机制问题驱动，信息利用率逐单元格核账，分阶段人在回路。",
+      "version": "1.0.0",
+      "author": {
+        "name": "Joker-of-Gotham"
+      },
+      "homepage": "https://github.com/Joker-of-Gotham/finkg",
+      "license": "MIT",
+      "category": "data",
+      "keywords": [
+        "knowledge-graph",
+        "neo4j",
+        "financial-analysis",
+        "graph-rag",
+        "金融图谱",
+        "知识图谱"
+      ]
+    }
+  ]
+}

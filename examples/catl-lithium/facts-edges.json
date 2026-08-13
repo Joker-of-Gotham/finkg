@@ -1,0 +1,104 @@
+[
+  {
+    "subject": "E-policy-density", "predicate": "对产业设定准入门槛",
+    "object": { "kind": "entity", "entity": "E-industry-battery" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "自2025年1月1日起，乘用车动力电池系统能量密度低于125Wh/kg的车型不再进入推荐目录",
+    "target": {
+      "kind": "edge", "from": "E-policy-density", "to": "E-industry-battery",
+      "relation": "提高动力电池能量密度准入门槛", "layer": "policy_regulation",
+      "mechanism": "准入门槛上移使低能量密度产品退出推荐目录，需求向高镍高压实路线集中，改变全行业原料配比",
+      "attrs": { "发布机构": "工业和信息化部", "生效时间": "2025-01-01",
+                 "适用范围": "乘用车动力电池系统", "约束阈值": "125Wh/kg", "过渡期": "无" }
+    }
+  },
+  {
+    "subject": "E-industry-battery", "predicate": "拉动原料需求",
+    "object": { "kind": "entity", "entity": "E-lithium" },
+    "epistemic": "reported", "confidence": "medium",
+    "quote": "高能量密度路线单位电量碳酸锂用量约0.6kg/kWh",
+    "target": {
+      "kind": "edge", "from": "E-industry-battery", "to": "E-lithium",
+      "relation": "拉动电池级碳酸锂需求", "layer": "demand_market",
+      "mechanism": "高能量密度路线单位电量碳酸锂用量上升，行业装机增长直接放大碳酸锂需求",
+      "attrs": { "单位耗量": "约0.6kg/kWh", "期间": "2025年", "方向": "同向" }
+    }
+  },
+  {
+    "subject": "E-lithium", "predicate": "作为主要产出品种",
+    "object": { "kind": "entity", "entity": "E-ganfeng" },
+    "epistemic": "reported", "confidence": "medium",
+    "quote": "碳酸锂长协采购 | 赣锋锂业（002460.SZ） | 2025-2027 | 指数联动定价，锁量不低于8万吨/年，约占采购15%",
+    "target": {
+      "kind": "edge", "from": "E-lithium", "to": "E-ganfeng",
+      "relation": "构成锂盐板块主要产出品种", "layer": "supply_operation",
+      "mechanism": "碳酸锂价格直接决定赣锋锂盐板块收入与毛利，进而影响其对下游的报价能力",
+      "attrs": { "产品规格": "电池级 99.5%", "期间": "2025年" }
+    }
+  },
+  {
+    "subject": "E-ganfeng", "predicate": "向客户供应",
+    "object": { "kind": "entity", "entity": "E-catl" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "碳酸锂长协采购 | 赣锋锂业（002460.SZ） | 2025-2027 | 指数联动定价，锁量不低于8万吨/年，约占采购15%",
+    "target": {
+      "kind": "edge", "from": "E-ganfeng", "to": "E-catl",
+      "relation": "向客户长协供应电池级碳酸锂", "layer": "supply_operation",
+      "mechanism": "长协锁量、价格随基准指数联动，锂价波动经采购成本直接进入宁德时代营业成本",
+      "attrs": { "合同类型": "长期协议", "有效期间": "2025-2027", "计价方式": "指数联动",
+                 "锁量": "不低于8万吨/年", "占采购比": "约15%" }
+    }
+  },
+  {
+    "subject": "E-catl", "predicate": "由分部贡献收入",
+    "object": { "kind": "entity", "entity": "E-segment-power" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "动力电池系统 | 2,912.44 | 68.74 | 24.18",
+    "target": {
+      "kind": "edge", "from": "E-catl", "to": "E-segment-power",
+      "relation": "由动力电池系统分部贡献主营业务收入", "layer": "financial_capital",
+      "mechanism": "分部收入与毛利率是合并营业总收入与营业成本的主要来源，锂价经此进入利润表",
+      "attrs": { "收入(亿元)": 2912.44, "收入占比(%)": 68.74, "毛利率(%)": 24.18,
+                 "期间": "2025年报", "口径": "主营业务构成" }
+    }
+  },
+  {
+    "subject": "E-segment-power", "predicate": "向客户销售",
+    "object": { "kind": "entity", "entity": "E-tesla" },
+    "epistemic": "reported", "confidence": "medium",
+    "quote": "动力电池系统销售 | 特斯拉（TSLA） | 2025 | 前五大客户占动力电池分部收入 41.3%",
+    "target": {
+      "kind": "edge", "from": "E-segment-power", "to": "E-tesla",
+      "relation": "向整车客户供应动力电池系统", "layer": "demand_market",
+      "mechanism": "整车客户排产决定分部出货量，出货量与单价共同决定分部收入",
+      "attrs": { "客户类型": "整车厂", "前五大客户占分部收入(%)": 41.3, "期间": "2025年" }
+    }
+  },
+  {
+    "subject": "E-tesla", "predicate": "改变盈利预期",
+    "object": { "kind": "entity", "entity": "E-catl-a" },
+    "epistemic": "inference", "confidence": "medium",
+    "basis_fact_ids": ["F00011", "F00012"],
+    "rule": "整车客户排产 → 分部出货量 → 分部收入与毛利 → 卖方盈利预测调整 → 一致预期EPS → 股价",
+    "quote": "动力电池系统销售 | 特斯拉（TSLA） | 2025 | 前五大客户占动力电池分部收入 41.3%",
+    "target": {
+      "kind": "edge", "from": "E-tesla", "to": "E-catl-a",
+      "relation": "经订单节奏改变市场盈利预期", "layer": "expectation_valuation",
+      "mechanism": "客户排产变化先反映为卖方盈利预测调整，再通过一致预期EPS影响股价；若客户自建电池产能投产，此传导减弱",
+      "attrs": { "传导时滞": "1-2个季度", "观察指标": "一致预期EPS", "方向": "同向",
+                 "敞口": "前五大客户占分部收入41.3%", "失效条件": "客户自建电池产能投产" }
+    }
+  },
+  {
+    "subject": "E-catl-a", "predicate": "挂牌交易于",
+    "object": { "kind": "entity", "entity": "E-szse" },
+    "epistemic": "reported", "confidence": "high",
+    "quote": "交易所 | 深圳证券交易所",
+    "target": {
+      "kind": "edge", "from": "E-catl-a", "to": "E-szse",
+      "relation": "在创业板挂牌交易", "layer": "legal_ownership",
+      "mechanism": "挂牌板块决定涨跌幅限制、投资者适当性与指数纳入资格，影响流动性与估值中枢",
+      "attrs": { "板块": "创业板", "交易币种": "CNY" }
+    }
+  }
+]
