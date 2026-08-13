@@ -1,6 +1,6 @@
 {
   "name": "finkg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Agent Skill for building deep, traceable Chinese financial knowledge graphs in Neo4j from LazySearch retrieval — rich node dossiers, mechanism-bearing Chinese edges, 10+ hop evidence paths, cell-level information-utilization accounting, and staged human-in-the-loop with no gates or keys.",
   "keywords": [
     "agent-skill",

@@ -7,7 +7,7 @@
     python $FG session new "宁德时代动力电池产业链" --anchor E-catl=宁德时代:Company
     python $FG search "宁德时代2025年合并利润表全部科目"
     python $FG harvest show h-0001 --part cells --unused-only
-    python $FG harvest mine h-0001 --facts facts.json --done
+    python $FG harvest mine h-0001 --done   # 读取会话 drafts/ 下的实体与事实草稿
     python $FG compile && python $FG quality
     python $FG neo4j ensure-db && python $FG neo4j load
 
@@ -33,6 +33,7 @@ import fgneo4j  # noqa: E402
 import fgstore  # noqa: E402
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
+# 档位只是发掘方向感，用来生成「下一步去问什么」，不是装库门槛。
 PROFILES = {
     "probe": {"label": "探路", "anchor_props": 12, "business_nodes": 30,
               "analyzable_ratio": 0.60, "layers": 3, "usage": 0.50,
@@ -43,6 +44,53 @@ PROFILES = {
     "deep": {"label": "纵深", "anchor_props": 40, "business_nodes": 300,
              "analyzable_ratio": 0.90, "layers": 8, "usage": 0.85,
              "independent": {"6": 20, "10": 8}},
+}
+
+# 十个检索扇区：brief/quality 用它们指出「下一步该问什么」，不设数量门槛。
+SECTORS = [
+    {"id": "1", "name": "身份与证券", "tags": ("身份", "证券", "s1"),
+     "keywords": ("证券实体", "ISIN", "上市地", "股本", "资产类别"),
+     "ask": "解析 {name} 的证券实体，A股/港股/美股候选都列出并说明区别"},
+    {"id": "2", "name": "财务报表", "tags": ("财报", "利润表", "资产负债表", "s2"),
+     "keywords": ("利润表", "资产负债表", "现金流量表", "全部科目"),
+     "ask": "{name} 最近三个报告期合并利润表、资产负债表、现金流量表全部科目与数值，不要摘要"},
+    {"id": "3", "name": "财务指标", "tags": ("指标", "s3"),
+     "keywords": ("成长能力", "盈利能力", "偿债", "营运能力", "每股收益"),
+     "ask": "{name} 最近 3 个报告期财务指标（成长/盈利/偿债/营运）全部字段"},
+    {"id": "4", "name": "业务构成", "tags": ("分部", "主营", "s4"),
+     "keywords": ("主营业务构成", "分部", "毛利率", "产品收入"),
+     "ask": "{name} 最新主营业务构成及对应营收、成本、毛利率、占比、同比"},
+    {"id": "5", "name": "所有权与治理", "tags": ("股东", "治理", "s5"),
+     "keywords": ("十大股东", "持股比例", "实控人", "董监高"),
+     "ask": "{name} 最新报告期前十大股东、持股数量、持股比例、股东性质与实控人"},
+    {"id": "6", "name": "供应与产能", "tags": ("供应", "产能", "客户", "s6"),
+     "keywords": ("供应商", "主要客户", "产能利用率", "长协", "在建工程"),
+     "ask": "{name} 主要客户与供应商、产能与产能利用率、在建工程与长协"},
+    {"id": "7", "name": "行情与估值", "tags": ("行情", "估值", "s7"),
+     "keywords": ("日线", "市值", "PE(TTM)", "换手"),
+     "ask": "{name} 最近 60 个交易日日线与市值、PE(TTM)、PB"},
+    {"id": "8", "name": "上游要素", "tags": ("上游", "商品", "s8"),
+     "keywords": ("开工率", "库存", "进出口"),
+     "ask": "与 {name} 相关的关键原料价格、产量、开工率、库存时序"},
+    {"id": "9", "name": "政策与事件", "tags": ("政策", "事件", "s9"),
+     "keywords": ("监管政策", "准入", "处罚", "诉讼"),
+     "ask": "{name} 所属行业最近的监管政策变化与公司公告、处罚、诉讼"},
+    {"id": "10", "name": "预期与风险", "tags": ("预期", "风险", "s10"),
+     "keywords": ("分析师", "一致预期", "风险因素"),
+     "ask": "{name} 的分析师盈利预测与一致预期；年报披露的主要风险因素"},
+]
+
+STRAY_ROOT_NAMES = {
+    "entities.json", "facts.json", "facts-edges.json", "facts-props.json",
+    "graph.json", "quality.json", "doctor.json", "nodes.csv", "relationships.csv",
+    "harvest.txt", "reply.txt",
+}
+
+TEMPLATE_DEFAULT_NAME = {
+    "entity": "entities.json",
+    "fact": "facts.json",
+    "fact-edge": "facts-edges.json",
+    "mechanism-question": "mechanism-questions.json",
 }
 
 
@@ -79,6 +127,42 @@ def _session(args) -> tuple[dict, fgstore.Session]:
 def _database(cfg: dict, session: fgstore.Session, args) -> str:
     return (getattr(args, "database", None) or cfg.get("neo4j_database")
             or session.database())
+
+
+def _anchor_name(meta: dict) -> str:
+    anchors = meta.get("anchors") or []
+    if not anchors:
+        return meta.get("topic") or "该公司"
+    first = anchors[0]
+    if isinstance(first, dict):
+        return first.get("name") or first.get("id") or "该公司"
+    return str(first)
+
+
+def _sector_coverage(session: fgstore.Session, meta: dict) -> tuple[list, list]:
+    harvests = session.harvests()
+    tags = set()
+    blob = []
+    for harvest in harvests:
+        tags.update(str(t) for t in (harvest.get("tags") or []))
+        blob.append(harvest.get("question") or "")
+    text = " ".join(blob)
+    name = _anchor_name(meta)
+    covered, missing = [], []
+    for sector in SECTORS:
+        hit = any(tag in tags for tag in sector["tags"]) or any(
+            key in text for key in sector["keywords"])
+        row = {"id": sector["id"], "name": sector["name"],
+               "next_query": sector["ask"].format(name=name)}
+        (covered if hit else missing).append(row)
+    return covered, missing
+
+
+def _stray_workspace_files(cfg: dict) -> list:
+    root = Path(cfg["_workspace"])
+    if not root.is_dir():
+        return []
+    return [name for name in sorted(STRAY_ROOT_NAMES) if (root / name).is_file()]
 
 
 # ==========================================================================
@@ -246,9 +330,11 @@ def cmd_session_new(args) -> int:
         return fail(str(exc))
     session.log("session_created", topic=args.topic, profile=args.profile)
     return out({"ok": True, "session_id": session_id, "path": str(session.root),
+                "drafts": str(session.drafts_dir),
                 "neo4j_database": meta["neo4j_database"], "meta": session.meta(),
                 "next": ["把中心问题与机制问题和用户对齐：fg.py align --stage scope ...",
-                         "开始广度检索：fg.py search \"...\""]})
+                         "按十个扇区检索，每次加 --tag（如 --tag 财报）",
+                         f"草稿只写进 {session.drafts_dir}，不要写到工作区根目录"]})
 
 
 def cmd_session_list(args) -> int:
@@ -323,10 +409,12 @@ def cmd_search(args) -> int:
     session.log("harvest", harvest_id=summary["id"], question=args.query,
                 channel=args.channel, data_cells=summary["data_cells"])
     preview = (payload.get("final_answer") or "")[: args.preview]
+    drafts = session.ensure_layout().drafts_dir
     return out({"ok": True, "harvest": summary, "answer_preview": preview,
                 "next": [f"fg.py harvest show {summary['id']} --part data  # 看原始表",
                          f"fg.py harvest show {summary['id']} --part cells # 看待挖掘单元格",
-                         f"fg.py harvest mine {summary['id']} --facts facts.json"]})
+                         f"把实体/事实草稿写到 {drafts}，不要写到工作区根目录",
+                         f"fg.py harvest mine {summary['id']} --done  # 读取 drafts/ 下 fact*.json"]})
 
 
 def cmd_harvest_add(args) -> int:
@@ -429,14 +517,24 @@ def cmd_harvest_show(args) -> int:
 def cmd_harvest_mine(args) -> int:
     """提交一次收割的挖掘成果：实体 + 事实 + 未用数据的处置理由。"""
     _, session = _session(args)
+    session.ensure_layout()
     try:
-        record = session.harvest(args.id)
+        session.harvest(args.id)
     except fgstore.StoreError as exc:
         return fail(str(exc))
-    added_entities = _ingest_entities(session, args.entities) if args.entities else 0
+    entity_files = ([args.entities] if args.entities
+                    else ([str(session.drafts_dir / "entities.json")]
+                          if (session.drafts_dir / "entities.json").exists() else []))
+    fact_files = ([args.facts] if args.facts
+                  else [str(p) for p in sorted(session.drafts_dir.glob("fact*.json"))])
+    added_entities = 0
+    for path in entity_files:
+        added_entities += _ingest_entities(session, path)
     added_facts, problems = 0, []
-    if args.facts:
-        added_facts, problems = _ingest_facts(session, args.facts, default_harvest=args.id)
+    for path in fact_files:
+        count, extra = _ingest_facts(session, path, default_harvest=args.id)
+        added_facts += count
+        problems.extend(extra)
     state = "mined" if args.done else "partial"
     session.set_harvest_state(args.id, state=state)
     session.log("harvest_mined", harvest_id=args.id, facts=added_facts,
@@ -545,7 +643,7 @@ def cmd_usage(args) -> int:
 # entity / fact / compile
 # ==========================================================================
 def _ingest_entities(session, path) -> int:
-    records = fgstore.load_records(Path(path))
+    records = fgstore.load_records(session.resolve_input(path))
     existing = {e["id"]: e for e in session.entities() if e.get("id")}
     for rec in records:
         if rec.get("id"):
@@ -555,7 +653,7 @@ def _ingest_entities(session, path) -> int:
 
 
 def _ingest_facts(session, path, default_harvest=None) -> tuple[int, list]:
-    records = fgstore.load_records(Path(path))
+    records = fgstore.load_records(session.resolve_input(path))
     existing = session.facts()
     used_ids = {f.get("id") for f in existing}
     counter = len(existing)
@@ -735,6 +833,7 @@ def cmd_quality(args) -> int:
     usage = _usage_for(session)
 
     findings = []
+    covered, missing_sectors = _sector_coverage(session, meta)
 
     def note(level, area, issue, fix):
         findings.append({"level": level, "area": area, "issue": issue, "fix": fix})
@@ -743,57 +842,54 @@ def cmd_quality(args) -> int:
         if problem["level"] == "error":
             note("error", "证据", f"{problem['ref']}: {problem['issue']}",
                  "改这条记录后重跑 fg.py compile")
-    if not anchors:
-        note("error", "范围", "会话没有锚点，无法判断这张图围绕什么展开",
-             "fg.py session set --anchor E-xxx=名称:Company")
-    for row in richness["anchor_rows"]:
-        if row["prop_count"] < profile["anchor_props"]:
-            note("error", "节点深度",
-                 f"锚点 {row['caption']} 只有 {row['prop_count']} 个有证据的属性，"
-                 f"{profile['label']}档要求 ≥{profile['anchor_props']}",
-                 "按 references/NODE_PROFILE.md 的维度组继续检索补齐，尤其是缺的组")
-        if row["group_count"] < 5:
-            note("error", "节点深度",
-                 f"锚点 {row['caption']} 属性只覆盖 {row['group_count']} 个维度组"
-                 f"（{'、'.join(row['prop_groups'])}）",
-                 "身份/行业/业务/财务/资本/治理/所有权/风险 至少覆盖 5 组")
-    if richness["name_only_nodes"]:
-        note("warn", "节点深度",
-             f"{len(richness['name_only_nodes'])} 个业务节点只有名字没有任何属性："
-             f"{richness['name_only_nodes'][:8]}",
-             "要么补属性，要么删掉——只有名字的节点让图看起来大而实际空")
-    if richness["business_node_count"] < profile["business_nodes"]:
-        note("warn", "覆盖广度",
-             f"有证据的业务节点 {richness['business_node_count']} 个，"
-             f"{profile['label']}档目标 ≥{profile['business_nodes']}",
-             "按 references/LAZYSEARCH.md 的十扇区继续扩，不要靠拆分同一实体凑数")
-    if edges["vague_relations"]:
-        note("error", "边可分析性",
-             f"{len(edges['vague_relations'])} 条边的关系名空泛："
-             f"{edges['vague_relations'][:8]}",
-             "换成具体金融动作，见 references/EDGE_SEMANTICS.md")
-    if edges["analyzable_ratio"] < profile["analyzable_ratio"]:
-        note("error", "边可分析性",
-             f"可分析边占比 {edges['analyzable_ratio']:.0%}"
-             f"（需同时有机制+属性+证据），目标 ≥{profile['analyzable_ratio']:.0%}；"
-             f"缺机制 {len(edges['missing_mechanism'])} 条，"
-             f"缺属性 {len(edges['missing_attrs'])} 条",
-             "补 mechanism 与量化属性；一条边说不清机制就说明这一跳还没研究透")
-    if edges["layers_used"] < profile["layers"]:
-        note("warn", "机制层次",
-             f"只用到 {edges['layers_used']} 个语义层，目标 {profile['layers']} 个",
-             "缺的层往往是政策/预期/二阶反馈，见 references/DEPTH.md")
+    bad_names = list(edges.get("vague_relations") or []) + list(edges.get("sentence_relations") or [])
+    if bad_names:
+        note("error", "边命名",
+             f"{len(bad_names)} 条关系名空泛或写成了句子：{bad_names[:8]}",
+             "改成 2–8 字短语（持股、长协供应、准入约束），对象/品类/限定写进 attrs")
     if facts_q["numeric_usable_ratio"] < 0.95 and facts_q["numeric_count"]:
         note("error", "数值可用性",
              f"只有 {facts_q['numeric_usable_ratio']:.0%} 的数值事实同时具备"
              f"单位/币种与期间",
              "补 unit / currency / period；缺口径的数值等于不能用")
+
+    if not anchors:
+        note("guide", "范围", "会话还没有锚点，图不知道围绕谁展开",
+             "先和用户对齐，再 fg.py session set --anchor E-xxx=名称:Company")
+    for row in richness["anchor_rows"]:
+        if row["prop_count"] < 8:
+            note("guide", "节点深度",
+                 f"锚点 {row['caption']} 只有 {row['prop_count']} 个有证据的属性",
+                 "fg.py harvest show <id> --part cells --unused-only；一次利润表应产出几十条属性")
+        if row["group_count"] < 5:
+            note("guide", "节点深度",
+                 f"锚点 {row['caption']} 属性只覆盖 {row['group_count']} 个维度组"
+                 f"（{'、'.join(row['prop_groups'])}）",
+                 "按 references/NODE_PROFILE.md 补所有权、治理、风险等还没问的组")
+    if richness["name_only_nodes"]:
+        note("warn", "节点深度",
+             f"{len(richness['name_only_nodes'])} 个业务节点只有名字没有任何属性："
+             f"{richness['name_only_nodes'][:8]}",
+             "要么补属性，要么删掉——只有名字的节点让图看起来大而实际空")
+    if missing_sectors:
+        first = missing_sectors[0]
+        note("guide", "下一步发掘",
+             f"还没覆盖的检索扇区：{'、'.join(s['name'] for s in missing_sectors)}",
+             f"下一步：fg.py search \"{first['next_query']}\" --tag {first['name']}")
+    if edges["missing_mechanism"] or edges["missing_attrs"]:
+        note("guide", "边可分析性",
+             f"缺机制 {len(edges['missing_mechanism'])} 条，缺属性 {len(edges['missing_attrs'])} 条",
+             "写不出机制说明这一跳还没研究透，回去检索，不要先连上再说")
+    if edges["layers_used"] < 6:
+        note("guide", "机制层次",
+             f"只用到 {edges['layers_used']} 个语义层（{ '、'.join(edges['layer_counts']) }）",
+             "最常缺政策/预期/二阶反馈，对应扇区 9 和 10，见 references/LAZYSEARCH.md")
     if conflicts:
         note("warn", "证据冲突",
              f"{len(conflicts)} 组同主体同指标同期间但数值不同",
              "用 fg.py align 把口径分歧摆给用户判断，不要静默取一个")
     if struct["isolated_nodes"]:
-        note("error", "结构",
+        note("warn", "结构",
              f"{len(struct['isolated_nodes'])} 个业务节点没有任何边：{struct['isolated_nodes'][:8]}",
              "孤立节点对多跳没有贡献，接上关系或删除")
     if struct["leaf_ratio"] > 0.45:
@@ -811,33 +907,28 @@ def cmd_quality(args) -> int:
                  f"从锚点 {anchor['caption']} 只能走到 "
                  f"{anchor['reach_undirected_ratio']:.0%} 的业务节点",
                  "剩下的部分与锚点无路可通，等于游离资料")
-    for want_hops, want_count in profile["independent"].items():
-        got = chains["independent_at_or_above"].get(want_hops, 0)
-        if got < want_count:
-            note("error", "纵深",
-                 f"边不重叠的实质 {want_hops}+ 跳路径只有 {got} 条，"
-                 f"{profile['label']}档目标 {want_count} 条",
-                 "先看 fg.py depth 里 weak_because 的理由：跨层不够、关系重复、"
-                 "某跳没证据，都不是靠再接一跳能解决的")
+    if chains["deepest_hops"] and chains["deepest_hops"] < 4:
+        note("guide", "纵深",
+             f"目前最深实质路径 {chains['deepest_hops']} 跳",
+             "不要为跳数接龙。看 fg.py depth 的 weak_because：缺哪一层就去搜哪一扇区")
     for case in cases:
         if not case["ok"]:
-            note("error", "机制问题",
-                 f"{case['id']}「{case['question']}」未被回答：" + "；".join(case["gaps"]),
-                 "这是用户点名要能走通的链路，优先补它缺的那几跳")
-    if usage["total_data_cells"]:
-        if usage["accounted_ratio"] < profile["usage"]:
-            note("error", "信息利用",
-                 f"检索回来 {usage['total_data_cells']} 个数据单元格，"
-                 f"只有 {usage['use_ratio']:.0%} 进了图、"
-                 f"{usage['accounted_ratio']:.0%} 被交代过；"
-                 f"{usage['open']} 个既没用也没说明为什么不用",
-                 "fg.py harvest show <id> --part cells --unused-only 逐个处理；"
-                 "确实不需要的用 fg.py harvest dispose 写明理由")
+            note("guide", "机制问题",
+                 f"{case['id']}「{case['question']}」还未走通：" + "；".join(case["gaps"]),
+                 "这是用户点名要能走通的链路，优先补它缺的那几跳，而不是扩大节点数")
+    if usage.get("open"):
+        note("guide", "信息利用",
+             f"检索回来 {usage['total_data_cells']} 个数据单元格，"
+             f"只有 {usage['use_ratio']:.0%} 进了图、"
+             f"{usage['accounted_ratio']:.0%} 被交代过；"
+             f"{usage['open']} 个既没用也没说明为什么不用",
+             "fg.py harvest show <id> --part cells --unused-only 逐个处理；"
+             "确实不需要的用 fg.py harvest dispose 写明理由")
     unmined = [h["id"] for h in session.harvests() if h.get("state") == "unmined"]
     if unmined:
-        note("error", "信息利用",
-             f"{len(unmined)} 次收割整个还没挖过：{unmined[:8]}",
-             "fg.py harvest show <id> --part data 然后 fg.py harvest mine")
+        note("guide", "信息利用",
+             f"{len(unmined)} 次收割还标着 unmined：{unmined[:8]}",
+             "fg.py harvest show <id> --part data，草稿写进 drafts/，然后 fg.py harvest mine <id> --done")
 
     errors = [f for f in findings if f["level"] == "error"]
     report = {
@@ -854,13 +945,26 @@ def cmd_quality(args) -> int:
                       "independent_at_or_above": chains["independent_at_or_above"],
                       "hop_histogram": chains["hop_histogram"]},
             "information_use": {k: v for k, v in usage.items() if k != "harvests"},
+            "sectors": {"covered": [s["name"] for s in covered],
+                        "missing": [s["name"] for s in missing_sectors]},
         },
         "mechanism_cases": [{k: v for k, v in c.items()
                              if k not in ("witnesses", "weak_samples")} for c in cases],
         "conflicts": conflicts[:20],
         "findings": findings,
-        "note": "这份报告只判内容质量。它不批准也不阻止任何人类决定；"
-                "ok=false 的含义是「还不能对外声称达标、也不该当成结论用」。",
+        "next": [f["fix"] for f in findings if f["level"] in ("error", "guide")][:6],
+        "orientation": {
+            "profile": profile_name,
+            "label": profile["label"],
+            "hint": (
+                f"「{profile['label']}」只是发掘方向，不是门槛。"
+                f"扇区铺开、锚点做成详表、机制链路走通之后，"
+                f"图往往会自然长到大约 {profile['business_nodes']} 个有证据节点、"
+                f"{profile['layers']} 个语义层；不要为这些数字接龙或造空壳。"
+            ),
+        },
+        "note": "ok=false 只表示还有证据缺陷或边名写成了句子，不能当结论用。"
+                "节点数/边数/跳数不是门槛；看 level=guide 的条目，按它给出的下一步去检索。",
     }
     fgstore.write_json(session.reports_dir / "quality.json", report)
     if args.brief:
@@ -872,7 +976,8 @@ def cmd_quality(args) -> int:
 # brief（渐进式披露的热上下文）
 # ==========================================================================
 def cmd_brief(args) -> int:
-    _, session = _session(args)
+    cfg, session = _session(args)
+    session.ensure_layout()
     meta = session.meta()
     harvests = session.harvests()
     facts = session.facts()
@@ -880,8 +985,13 @@ def cmd_brief(args) -> int:
     usage = _usage_for(session) if harvests else {"total_data_cells": 0, "use_ratio": 0,
                                                  "accounted_ratio": 0, "open": 0,
                                                  "harvests": []}
+    covered, missing_sectors = _sector_coverage(session, meta)
+    stray = _stray_workspace_files(cfg)
+    drafts = sorted(p.name for p in session.drafts_dir.glob("*.json")) if session.drafts_dir.exists() else []
     todo = []
     unmined = [h["id"] for h in harvests if h.get("state") == "unmined"]
+    if stray:
+        todo.append(f"工作区根目录堆了 {', '.join(stray)}，请移到 {session.drafts_dir} 再 mine，不要写在根目录")
     if not meta.get("center_question"):
         todo.append("中心问题还是空的——先和用户对齐要回答什么（fg.py align --stage scope）")
     if not meta.get("anchors"):
@@ -889,8 +999,13 @@ def cmd_brief(args) -> int:
     if not meta.get("mechanism_questions"):
         todo.append("还没有机制问题——纵深要服务于具体问题，否则就是为了多跳而多跳"
                     "（fg.py session set --mechanism-question '{...}'）")
+    if missing_sectors:
+        first = missing_sectors[0]
+        todo.append(f"扇区「{first['name']}」还没检索（还缺 {len(missing_sectors)} 个扇区）。"
+                    f"下一步：fg.py search \"{first['next_query']}\" --tag {first['name']}")
     if unmined:
-        todo.append(f"{len(unmined)} 次收割还没挖：{unmined[:6]}")
+        todo.append(f"{len(unmined)} 次收割还没挖：{unmined[:6]}。"
+                    f"草稿写进 {session.drafts_dir}，然后 fg.py harvest mine <id> --done")
     if usage.get("open"):
         worst = sorted(usage["harvests"], key=lambda r: r["accounted_ratio"])[:3]
         todo.append(f"{usage['open']} 个数据单元格既没用也没交代，最欠的是 "
@@ -918,6 +1033,12 @@ def cmd_brief(args) -> int:
         "center_question": meta.get("center_question"),
         "anchors": meta.get("anchors"),
         "mechanism_questions": meta.get("mechanism_questions"),
+        "session_path": str(session.root),
+        "drafts_path": str(session.drafts_dir),
+        "drafts": drafts,
+        "stray_workspace_files": stray,
+        "sectors": {"covered": [s["name"] for s in covered],
+                    "missing": missing_sectors},
         "counts": {"harvests": len(harvests), "facts": len(facts),
                    "entities": len(session.entities()),
                    "nodes": len(graph["nodes"]) if graph else 0,
@@ -928,7 +1049,7 @@ def cmd_brief(args) -> int:
         "open_alignments": [{"stage": e.get("stage"), "question": e.get("question")}
                             for e in open_asks],
         "recent_ledger": session.ledger()[-6:],
-        "next": todo or ["跑 fg.py quality 看还差什么"],
+        "next": todo or ["跑 fg.py quality：有 error 先修证据；有 guide 就按它的下一步去检索"],
     })
 
 
@@ -1009,13 +1130,11 @@ def cmd_neo4j_load(args) -> int:
         return fail(str(exc))
     if not args.force:
         report = fgstore.read_json(session.reports_dir / "quality.json")
-        if report is None:
-            return fail("先跑 fg.py quality（装载前至少看一眼质量），或用 --force 跳过")
-        if not report.get("ok"):
-            bad = [f["issue"] for f in report.get("findings", []) if f["level"] == "error"]
-            return fail("质量报告是 ok=false，不装载生产库。"
-                        "先修下面这些，或明确用 --force 装一个已知不达标的快照。",
-                        errors=bad[:10])
+        blockers = fgmodel.load_blockers(report)
+        if blockers:
+            return fail("质量报告里还有证据类错误（引文找不到、端点悬空等），"
+                        "装进去的图不可回溯。先修这些，或明确用 --force。",
+                        errors=[b["issue"] for b in blockers[:10]])
     if args.dry_run:
         nodes, edges = fgneo4j.node_rows(graph), fgneo4j.edge_rows(graph)
         flat_nodes = [row for rows in nodes.values() for row in rows]
@@ -1175,11 +1294,20 @@ def cmd_template(args) -> int:
         return fail(f"没有模板 {args.name}",
                     available=sorted(p.stem for p in root.glob("*.json")))
     payload = json.loads(fgstore.read_text(path))
-    if args.output:
-        target = fgstore.write_json(Path(args.output), payload)
+    default_name = TEMPLATE_DEFAULT_NAME.get(args.name, f"{args.name}.json")
+    try:
+        _, session = _session(args)
+        session.ensure_layout()
+        target = session.resolve_output(args.output, default_name)
+        fgstore.write_json(target, payload)
         return out({"ok": True, "template": args.name, "written": str(target),
-                    "hint": "改完直接 fg.py fact add / entity add 喂进来"})
-    return out(payload)
+                    "hint": "改完后 fg.py harvest mine <id> --done 会读取 drafts/ 下的草稿；"
+                            "不要把 entities.json / facts.json 写到工作区根目录"})
+    except fgstore.StoreError:
+        if args.output:
+            target = fgstore.write_json(Path(args.output), payload)
+            return out({"ok": True, "template": args.name, "written": str(target)})
+        return out(payload)
 
 
 # ==========================================================================
@@ -1372,7 +1500,7 @@ def build_parser() -> argparse.ArgumentParser:
     nload = neo.add_parser("load", help="整库替换装载并读回核对")
     nload.add_argument("--dry-run", action="store_true")
     nload.add_argument("--append", action="store_true", help="不清空已有内容")
-    nload.add_argument("--force", action="store_true", help="质量未达标也装")
+    nload.add_argument("--force", action="store_true", help="证据类错误也装")
     nload.set_defaults(func=cmd_neo4j_load)
     neo.add_parser("snapshot", help="库里现在有什么").set_defaults(func=cmd_neo4j_snapshot)
     nq = neo.add_parser("query", help="跑 Cypher")

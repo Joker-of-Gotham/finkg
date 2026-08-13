@@ -1,6 +1,6 @@
 {
   "name": "finkg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "构建、扩展或审计中文金融知识图谱：LazySearch 全量落盘 → 可回溯原子事实 → Neo4j 深图。节点按维度组带丰富属性，边是具体中文金融动作并带机制与量化属性，纵深由机制问题驱动，信息利用率逐单元格核账。",
   "author": {
     "name": "Joker-of-Gotham",

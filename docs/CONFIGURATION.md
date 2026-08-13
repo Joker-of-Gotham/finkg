@@ -134,6 +134,7 @@ agent 在设计检索前会读它，记得越准取数越精确。同样要加�
 ├── harvest/
 │   ├── index.json        收割索引与挖掘状态（unmined / partial / mined）
 │   └── h-0001.json       一次检索的完整落盘（含切层与单元格清点）
+├── drafts/               挖掘草稿（entities.json / facts.json），不要写到工作区根目录
 ├── entities.jsonl        实体注册表
 ├── facts.jsonl           原子事实（含 quote 与 harvest_id）
 ├── dispositions.json     未用数据的处置理由
@@ -183,24 +184,17 @@ fg session new "主题" --database neo4j
 
 ## 质量档
 
-| 指标 | `probe` 探路 | `standard` 标准 | `deep` 纵深 |
-| --- | --- | --- | --- |
-| 锚点已知属性数 | ≥12 | ≥24 | ≥40 |
-| 有证据业务节点 | ≥30 | ≥120 | ≥300 |
-| 可分析边占比 | ≥60% | ≥80% | ≥90% |
-| 用到的语义层 | ≥3 | ≥6 | 8 |
-| 信息交代率 | ≥50% | ≥75% | ≥85% |
-| 独立实质路径 | 6跳×1 | 6跳×8 + 8跳×3 | 6跳×20 + 10跳×8 |
-
-另有三项与档位无关，始终同一标准：数值可用率（有单位/币种 + 有期间）≥95%、
-锚点属性覆盖 ≥5 个维度组、空泛关系为 0。
+`probe` / `standard` / `deep` 只是发掘方向感，用来让 `fg brief` 说话更有针对性。
+**不产生 error，不阻止装库，也不是「必须达到 XXX 节点 / XXX 边 / XXX 跳」。**
+图要变深、变大，按十个扇区继续检索，把还悬着的单元格挖尽。
 
 ```bash
 fg session set --profile deep
-fg quality --profile probe      # 临时用别的档看一眼，不改会话设置
+fg brief                    # 看下一个该问的扇区和 stray 文件
+fg quality --brief
 ```
 
-档位是**目标**，不是准入条件。`ok=false` 只意味着「还不能对外声称达标」，不阻止任何操作。
+`ok=false` 只表示还有引文对不上或边名写成了句子。规模、跳数、扇区覆盖从不拦截 `fg neo4j load`。
 
 ## LazySearch 通道
 

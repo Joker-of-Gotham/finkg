@@ -95,12 +95,12 @@ fg harvest show h-0001 --part cells --unused-only --limit 20
 
 ## 5. 挖成实体与事实
 
-用模板起手（`--output` 让工具自己写文件，Windows 上比 shell 重定向可靠）：
+用模板起手。有会话时会写入会话 `drafts/`，**不要写到工作区根目录**：
 
 ```bash
-fg template entity --output entities.json
-fg template fact   --output facts.json
-fg template fact-edge --output edges.json
+fg template entity          # → financial-graph-sessions/<会话>/drafts/entities.json
+fg template fact            # → drafts/facts.json
+fg template fact-edge       # → drafts/facts-edges.json
 ```
 
 改成真实内容。核心要求：`quote` 必须能在这次收割的原文里**逐字找到**。
@@ -120,7 +120,7 @@ fg template fact-edge --output edges.json
 引文摘**整行**比摘单个数字划算：一次覆盖三个单元格，也更利于回溯。
 
 ```bash
-fg harvest mine h-0001 --entities entities.json --facts facts.json --done
+fg harvest mine h-0001 --done    # 读取 drafts/ 下的实体与事实草稿
 ```
 
 ```json
@@ -198,16 +198,17 @@ fg depth --min-hops 6
 fg quality
 ```
 
-`ok=false` 时会逐条给出问题与修法，按 `skills/finkg/references/QUALITY.md` 的顺序修
-（证据类 error → 机制问题 → 未挖收割 → 锚点属性 → 边机制 → 纵深 → 覆盖广度）。
+`ok=false` 时是证据缺陷或边名写成了句子。按 `skills/finkg/references/QUALITY.md` 的顺序修
+（证据类 error → 机制问题 → 未挖收割与未覆盖扇区 → 锚点属性 → 边机制 → 结构）。
+节点数/边数/跳数是 `guide`，不是门槛。
 
 ```bash
 fg neo4j ensure-db
 fg neo4j load
 ```
 
-装载在单事务里完成整库替换 + 读回核对，核对不上整体回滚。质量报告 `ok=false` 时会拒绝装
-生产库；确实要装一个中间快照看看形状，加 `--force`。
+装载在单事务里完成整库替换 + 读回核对，核对不上整体回滚。
+规模不够不会拦住装库；只有引文找不到、端点悬空才会拒绝（`--force` 可覆盖）。
 
 ## 10. 在库里验证多跳
 

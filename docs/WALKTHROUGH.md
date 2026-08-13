@@ -127,10 +127,10 @@ fg harvest show h-0002 --part provenance     # 拿到 82 个中文科目名
 fg harvest show h-0002 --part data --grep "营业|利润|费用"
 ```
 
-写 `facts.json`，然后：
+草稿写进会话 `drafts/`（`fg template fact` 会放对位置），然后：
 
 ```bash
-fg harvest mine h-0002 --entities entities.json --facts facts.json
+fg harvest mine h-0002 --done
 fg node E-catl
 ```
 
@@ -222,7 +222,7 @@ fg harvest mine h-0011 --facts facts-expectation.json --done
   "basis_fact_ids": ["F00142", "F00151"],
   "rule": "分部收入与毛利率变化 → 合并营业利润 → 卖方盈利预测调整 → 一致预期EPS",
   "target": {
-    "relation": "经分部毛利变化改变市场盈利预期",
+    "relation": "预期传导",
     "layer": "expectation_valuation",
     "mechanism": "分部毛利率是卖方模型的核心输入，变化会先反映为预测调整再反映为股价；若公司同期发布指引覆盖该变化，此传导被指引替代",
     "attrs": { "传导时滞": "1-2个季度", "观察指标": "一致预期EPS", "失效条件": "公司发布覆盖性业绩指引" }
@@ -269,10 +269,10 @@ fg neo4j hop --from-id E-lithium --to-id E-catl-a --min-hops 5 --max-hops 12 --l
 ```
 
 ```
-电池级碳酸锂 ─构成锂盐板块主要产出品种──→ 赣锋锂业       [供给与运营]
-赣锋锂业     ─向客户长协供应电池级碳酸锂→ 宁德时代       [供给与运营]
-宁德时代     ─由动力电池分部贡献主营收入→ 动力电池分部   [财务与资本]
-动力电池分部 ─经分部毛利变化改变盈利预期→ 宁德时代A股    [预期与估值]
+电池级碳酸锂 ─主要产出──→ 赣锋锂业       [供给与运营]
+赣锋锂业     ─长协供应──→ 宁德时代       [供给与运营]
+宁德时代     ─贡献收入──→ 动力电池分部   [财务与资本]
+动力电池分部 ─预期传导──→ 宁德时代A股    [预期与估值]
                                           跳数 4 · 跨 3 层
 ```
 

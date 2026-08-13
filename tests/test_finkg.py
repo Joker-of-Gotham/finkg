@@ -417,12 +417,12 @@ class TestFactValidation(unittest.TestCase):
 def _edge_fact(**target_over):
     target = {
         "kind": "edge", "from": "E-a", "to": "E-b",
-        "relation": "向客户供应电池级碳酸锂", "layer": "supply_operation",
+        "relation": "长协供应", "layer": "supply_operation",
         "mechanism": "长协指数联动，价格波动经采购成本进入营业成本",
-        "attrs": {"合同类型": "长期协议", "期间": "2025年"},
+        "attrs": {"合同类型": "长期协议", "期间": "2025年", "品类": "电池级碳酸锂"},
     }
     target.update(target_over)
-    return {"id": "F00001", "subject": "E-a", "predicate": "向客户供应",
+    return {"id": "F00001", "subject": "E-a", "predicate": "供应",
             "object": {"kind": "entity", "entity": "E-b"},
             "epistemic": "reported", "harvest_id": "h-0001",
             "quote": "甲公司向乙公司供货", "target": target}
@@ -432,11 +432,32 @@ class TestEdgeQuality(unittest.TestCase):
     def test_good_edge_passes(self):
         self.assertEqual(_issues([_edge_fact()]), [])
 
+    def test_phrase_relation_accepted(self):
+        for word in ("持股", "挂牌", "长协供应", "准入约束", "贡献收入"):
+            with self.subTest(relation=word):
+                self.assertEqual(_issues([_edge_fact(relation=word)]), [])
+
     def test_vague_relation_rejected(self):
         for word in ("相关", "影响", "关联", "related", "affects"):
             with self.subTest(relation=word):
                 issues = _issues([_edge_fact(relation=word)])
                 self.assertTrue(any("太空泛" in i for i in issues), f"「{word}」应被拒绝")
+
+    def test_sentence_relation_rejected(self):
+        """关系类型必须是短语，不能是整句。"""
+        issues = _issues([_edge_fact(relation="向客户长协供应电池级碳酸锂")])
+        self.assertTrue(any("句子" in i for i in issues), issues)
+
+    def test_load_blockers_ignore_scale(self):
+        report = {"ok": False, "findings": [
+            {"level": "guide", "area": "覆盖广度", "issue": "节点 9 个"},
+            {"level": "error", "area": "纵深", "issue": "只有 1 条 6 跳"},
+            {"level": "error", "area": "证据", "issue": "quote 在 h-0001 的返回里找不到"},
+        ]}
+        blockers = fgmodel.load_blockers(report)
+        self.assertEqual(len(blockers), 1)
+        self.assertIn("quote", blockers[0]["issue"])
+        self.assertEqual(fgmodel.load_blockers(None), [])
 
     def test_missing_mechanism_is_warning_not_error(self):
         """缺机制会拉低可分析率并让纵深断掉，但不阻止入库。"""
@@ -456,7 +477,7 @@ class TestEdgeQuality(unittest.TestCase):
 
     def test_unanalyzable_edge_lowers_ratio(self):
         meta = {"topic": "t", "anchors": []}
-        facts = [_edge_fact(), _edge_fact(mechanism="", attrs={}, relation="向客户供应电芯")]
+        facts = [_edge_fact(), _edge_fact(mechanism="", attrs={}, relation="整车供应")]
         facts[1]["id"] = "F00002"
         graph = fgmodel.compile_graph(meta, _entities(), facts)
         quality = fgmodel.edge_quality(graph)
@@ -702,7 +723,7 @@ class TestNeo4jMapping(unittest.TestCase):
         nodes = self.fgneo4j.node_rows(self.graph)
         edges = self.fgneo4j.edge_rows(self.graph)
         self.assertIn("Company", nodes)
-        self.assertIn("向客户供应电池级碳酸锂", edges)
+        self.assertIn("长协供应", edges)
 
     def test_props_stay_neo4j_compatible(self):
         for rows in self.fgneo4j.node_rows(self.graph).values():
@@ -717,7 +738,7 @@ class TestNeo4jMapping(unittest.TestCase):
                             self.assertLessEqual(len(kinds), 1, f"{key} 是异质数组")
 
     def test_edge_attrs_carry_mechanism_and_layer(self):
-        rows = self.fgneo4j.edge_rows(self.graph)["向客户供应电池级碳酸锂"]
+        rows = self.fgneo4j.edge_rows(self.graph)["长协供应"]
         attrs = rows[0]["attrs"]
         self.assertTrue(attrs["机制"])
         self.assertEqual(attrs["语义层"], "supply_operation")
@@ -731,7 +752,7 @@ class TestNeo4jMapping(unittest.TestCase):
     def test_grass_covers_every_label_and_relation(self):
         style = self.fgneo4j.grass(self.graph)
         self.assertIn("node.Company", style)
-        self.assertIn("relationship.向客户供应电池级碳酸锂", style)
+        self.assertIn("relationship.长协供应", style)
 
 
 # ==========================================================================
@@ -839,10 +860,13 @@ class TestCliOffline(unittest.TestCase):
         depth = self._run("depth", "--min-hops", "4", "--brief")
         self.assertGreaterEqual(depth["deepest_hops"], 4)
 
-        # probe 档下这份小样例达不到目标，quality 应当诚实返回 ok=false
-        quality = self._run("quality", "--brief", expect=1)
-        self.assertFalse(quality["ok"])
-        self.assertTrue(quality["findings"])
+        # 规模/跳数不再让 ok=false；有证据缺陷才失败
+        quality = self._run("quality", "--brief", expect=0)
+        self.assertTrue(quality["ok"])
+        self.assertTrue(any(f["level"] == "guide" for f in quality["findings"]))
+        self.assertFalse(any(
+            f["level"] == "error" and any(k in f["issue"] for k in ("档", "目标 ≥", "跳路径"))
+            for f in quality["findings"]))
 
         brief = self._run("brief")
         self.assertTrue(brief["next"])
@@ -892,6 +916,40 @@ class TestCliOffline(unittest.TestCase):
         }], ensure_ascii=False), encoding="utf-8")
         result = self._run("fact", "add", str(forged), expect=1)
         self.assertTrue(any("找不到" in p["issue"] for p in result["problems"]))
+
+    def test_template_defaults_to_session_drafts(self):
+        self._run("session", "new", "草稿", "--id", "t6")
+        result = self._run("template", "entity")
+        written = Path(result["written"])
+        self.assertEqual(written.name, "entities.json")
+        self.assertEqual(written.parent.name, "drafts")
+        self.assertTrue(written.exists())
+        self._run("template", "fact", "--output", "facts.json")
+        self.assertTrue((self.tmp / "sessions" / "t6" / "drafts" / "facts.json").exists())
+        self.assertFalse((self.tmp / "facts.json").exists())
+
+    def test_harvest_mine_reads_drafts(self):
+        self._run("session", "new", "挖掘", "--id", "t7",
+                  "--anchor", "E-catl=宁德时代:Company")
+        self._run("harvest", "add", "利润表", "--file", str(EXAMPLE / "harvest.txt"),
+                  "--channel", "manual")
+        drafts = self.tmp / "sessions" / "t7" / "drafts"
+        drafts.mkdir(parents=True, exist_ok=True)
+        shutil.copy(EXAMPLE / "entities.json", drafts / "entities.json")
+        shutil.copy(EXAMPLE / "facts-props.json", drafts / "facts.json")
+        mined = self._run("harvest", "mine", "h-0001", "--done")
+        self.assertGreater(mined["entities_added"], 0)
+        self.assertGreater(mined["facts_added"], 0)
+
+    def test_brief_points_at_missing_sectors_and_stray_root(self):
+        self._run("session", "new", "引导", "--id", "t8",
+                  "--anchor", "E-catl=宁德时代:Company")
+        (self.tmp / "entities.json").write_text("[]", encoding="utf-8")
+        brief = self._run("brief")
+        self.assertIn("entities.json", brief["stray_workspace_files"])
+        self.assertTrue(brief["sectors"]["missing"])
+        self.assertTrue(any("扇区" in item for item in brief["next"]))
+        self.assertTrue(any("根目录" in item for item in brief["next"]))
 
 
 if __name__ == "__main__":

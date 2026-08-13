@@ -12,10 +12,11 @@
       "kind": "edge",
       "from": "E-ganfeng",
       "to": "E-catl",
-      "relation": "向客户长协供应电池级碳酸锂",
+      "relation": "长协供应",
       "layer": "supply_operation",
       "mechanism": "长协锁量、价格随基准指数联动，锂价波动经采购成本直接进入宁德时代营业成本",
       "attrs": {
+        "品类": "电池级碳酸锂",
         "合同类型": "长期协议",
         "有效期间": "2025-2027",
         "计价方式": "指数联动",
@@ -37,7 +38,7 @@
       "kind": "edge",
       "from": "E-holder-1",
       "to": "E-catl",
-      "relation": "作为第一大股东直接持有股份",
+      "relation": "持股",
       "layer": "legal_ownership",
       "mechanism": "持股比例决定股东大会表决权与董事提名能力，构成实际控制的基础",
       "attrs": {
@@ -62,7 +63,7 @@
       "kind": "edge",
       "from": "E-policy-density",
       "to": "E-industry-battery",
-      "relation": "提高动力电池能量密度准入门槛",
+      "relation": "准入约束",
       "layer": "policy_regulation",
       "mechanism": "准入门槛上移使低能量密度产品退出推荐目录，需求向高镍高压实路线集中，改变全行业原料配比",
       "attrs": {
@@ -88,7 +89,7 @@
       "kind": "edge",
       "from": "E-tesla",
       "to": "E-catl-a",
-      "relation": "经订单节奏改变市场盈利预期",
+      "relation": "预期传导",
       "layer": "expectation_valuation",
       "mechanism": "客户排产变化先反映为卖方盈利预测调整，再通过一致预期EPS影响股价；若客户转向自供或改用其他技术路线，此传导减弱",
       "attrs": {

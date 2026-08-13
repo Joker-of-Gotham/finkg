@@ -1,6 +1,6 @@
 ---
 name: finkg
-description: 构建、扩展或审计中文金融知识图谱时使用。用 LazySearch 检索并把返回全量落盘，深挖成可回溯原文的原子事实，写入 Neo4j。节点按维度组带丰富属性（财务/行情/估值/所有权/供应/治理/风险），边是具体中文金融动作并带机制与量化属性，纵深由机制问题驱动（跨语义层 6~10+ 跳独立路径），并逐单元格核账检索信息的利用率。分阶段与人对齐，无 Gate、签名或密钥。关键词 financial knowledge graph, Neo4j, LazySearch, graph RAG, 产业链, 传导链, 财报, 股东, 多跳推理。
+description: 构建、扩展或审计中文金融知识图谱时使用。用 LazySearch 检索并把返回全量落盘，深挖成可回溯原文的原子事实，写入 Neo4j。节点按维度组带丰富属性（财务/行情/估值/所有权/供应/治理/风险）；边是短中文关系短语（词或动宾，对象与量化写在属性上）。纵深由机制问题引导、按扇区逐步发掘，不设节点/边/跳数门槛。逐单元格核账利用率。分阶段与人对齐，无 Gate、签名或密钥。关键词 financial knowledge graph, Neo4j, LazySearch, graph RAG, 产业链, 传导链, 财报, 股东。
 license: MIT
 ---
 
@@ -159,15 +159,15 @@ fg neo4j query "MATCH (n:Company) RETURN n.caption, n._prop_count ORDER BY n._pr
 fg neo4j grass                           # Browser 配色，拖进 :style 面板
 ```
 
-图在库里的形状：节点同时带 `FGNode` 与语义标签（`Company` / `Stock` / `Event` …），**关系类型直接是中文动作**，`机制` / `语义层` / `期间` 等写在关系属性上。所以 Browser 里一眼能读懂，Cypher 里也能按中文关系名直接查。装载前会看质量报告；`ok=false` 时拒绝装生产库，确实要装一个已知不达标的快照就加 `--force`。
+图在库里的形状：节点同时带 `FGNode` 与语义标签（`Company` / `Stock` / `Event` …），**关系类型是 2–8 字中文短语**（`持股`、`长协供应`、`准入约束`），`机制` / `语义层` / 品类与量化写在关系属性上。装库**不看节点数、边数、跳数**；只有引文找不到、端点悬空这类证据错误才会拒绝（`--force` 可覆盖）。规模不够时看 `fg brief` 的下一步查询，不要靠凑数过关。
 
 ## 六件不能违反的事
 
 1. **先落盘，再使用。** 没有 `harvest_id` + 能在该次收割原文中找到的 `quote` 的事实，等于不存在——工具会直接指出 quote 找不到。不要凭记忆改写数字或原文。
 2. **一条事实只说一个值或一个关系。** 复合单元格里的营收、成本、比率、期间必须拆开，各自带自己的单位、币种、期间、口径。
 3. **公司、股票、上市记录是三样东西。** 公司报财务，股票有行情与估值，上市记录管板块、币种、交易规则。混成一个节点会让所有财务/行情属性口径失真。
-4. **关系必须是具体中文金融动作，并且自带机制与量化属性。** 「向客户长协供应电池级碳酸锂」+ 机制一句话 + 合同类型/计价方式/期间。写「相关」「影响」「关联」的边会被判为不可分析。
-5. **纵深服务于机制问题。** 先和用户确定「哪条链路必须能走通」，再去补那几跳。为凑跳数串起来的长链会因为跨层不足、关系重复、某跳无证据而被判为非实质。
+4. **关系必须是 2–8 字中文短语，机制与量化放在边上。** 「长协供应」+ `attrs.品类=电池级碳酸锂` + 一句话机制。写成「向客户长协供应电池级碳酸锂」这种句子，图例读不动；写「相关」「影响」「关联」会被判为不可分析。
+5. **纵深服务于机制问题，靠扇区逐步发掘。** 先和用户确定「哪条链路必须能走通」，再按 `LAZYSEARCH.md` 的十个扇区去问。**不要设「必须有 XXX 节点 / XXX 边 / XXX 跳」的门槛**，也不要为跳数接龙。`fg brief` 会指出下一个该问的扇区和还没用的单元格。
 6. **不自主下单、开户、授信、估值签字或对外发布结论。** 高影响判断交给用户。
 
 ## 工作循环
@@ -184,10 +184,13 @@ fg session set --mechanism-question '{"id":"M1","question":"锂价如何经采�
 
 **② 广度收割。** 按 `references/LAZYSEARCH.md` 的十个扇区铺开检索，一个扇区一到多次 `fg search`，打上 `--tag`。宁可多问，不要少问——落盘的成本很低，漏掉一整类信息的代价很高。
 
-**③ 深挖成事实。** 对每次收割逐表逐行逐单元格地挖。产出实体 + 事实 JSON（模板：`fg template fact` / `fg template entity`），然后：
+**③ 深挖成事实。** 对每次收割逐表逐行逐单元格地挖。草稿**只写进会话目录**，不要堆在工作区根目录：
 
 ```bash
-fg harvest mine h-0001 --entities entities.json --facts facts.json --done
+fg template entity          # 写入 financial-graph-sessions/<会话>/drafts/entities.json
+fg template fact            # 写入 drafts/facts.json
+# 用编辑器改 drafts 里的文件
+fg harvest mine h-0001 --done    # 自动读取 drafts/entities.json 与 drafts/fact*.json
 fg harvest dispose h-0001 --scope "数据状态" --reason "库内数据版本标记，不是业务事实"
 ```
 
@@ -209,7 +212,7 @@ fg depth --min-hops 6
 
 看 `weak_because`：跨层不够、关系重复、某跳没证据、连续推断过长，各有各的补法，都不是「再接一跳」能解决的。细则见 `references/DEPTH.md`。
 
-**⑥ 装库读图。**
+**⑥ 装库读图。** 不必等「达标」——证据没问题就可以装，边挖边看。
 
 ```bash
 fg quality && fg neo4j ensure-db && fg neo4j load
@@ -236,7 +239,7 @@ fg answer "<用户的决定>" --effect "<你据此改了什么>"
 - 已经对齐过的范围、锚点、机制问题需要推翻或回退；
 - 涉及付费来源、个人数据、对外写入或任何交易动作。
 
-**没有 Gate、没有签名、没有令牌、没有哈希链。** 台账 `ledger.jsonl` 是明文，随时可以打开看、可以手改。它记录的是「我们商量过什么」，不是「谁被授权了」。质量报告同理：`ok=false` 只意味着「还不能对外声称达标」，它不批准也不阻止任何人类决定。
+**没有 Gate、没有签名、没有令牌、没有哈希链。** 台账 `ledger.jsonl` 是明文，随时可以打开看、可以手改。它记录的是「我们商量过什么」，不是「谁被授权了」。质量报告同理：`ok=false` 只表示还有引文对不上或边名写成了句子；节点数/边数/跳数从来不是门槛，也不拦住装库。
 
 ## 常见走偏
 
@@ -244,7 +247,7 @@ fg answer "<用户的决定>" --effect "<你据此改了什么>"
 | --- | --- | --- |
 | 图看起来很大但没法回答问题 | 大量只有名字的节点 | `fg quality` 看 `name_only_nodes`，补属性或删掉 |
 | 每个节点都只有名称和一两个数 | 只用了 `final_answer`，没挖 history 里的原始表 | `fg harvest show <id> --part data`，`--part cells --unused-only` |
-| 边很多但没法深入分析 | 关系空泛、无机制、无量化属性 | `references/EDGE_SEMANTICS.md`，看 `missing_mechanism` / `missing_attrs` |
+| 边很多但没法深入分析 | 关系空泛、写成句子、无机制、无量化属性 | `references/EDGE_SEMANTICS.md`，看 `vague_relations` / `sentence_relations` |
 | 有 10 跳路径但读起来不像机制 | 跨层不足或同一种关系重复接龙 | `fg depth` 看 `weak_because`，`references/DEPTH.md` |
 | 一根长链，任何一跳断掉就断 | 2-core 接近 0、桥边率接近 100% | 为同一结论找第二条边不重叠的独立通路 |
 | 数字对不上、口径打架 | 报告期 vs 时点、合并 vs 母公司、复权口径混用 | `fg quality` 的 `conflicts`，用 `fg align` 交给用户判 |
@@ -273,7 +276,7 @@ fg answer "<用户的决定>" --effect "<你据此改了什么>"
 | `fg export --output <目录>` | 导出交付包 |
 | `fg template [名称]` | JSON 模板 |
 
-会话落在工作区 `financial-graph-sessions/<会话名>/`：`harvest/` 原始返回、`facts.jsonl`、`entities.jsonl`、`graph.json`、`ledger.jsonl`、`reports/`。全是明文，随时可读可改。
+会话落在工作区 `financial-graph-sessions/<会话名>/`：`harvest/` 原始返回、`drafts/` 挖掘草稿、`facts.jsonl`、`entities.jsonl`、`graph.json`、`ledger.jsonl`、`reports/`。全是明文，随时可读可改。**不要把 `entities.json` / `facts.json` / `quality.json` 写到工作区根目录**——`fg brief` 发现根目录 stray 文件会直接点名。
 
 工作区里还有两个本地文件，**都不应进版本库**：`financial_graph.local.json`（地址与凭据）、
 `finkg.environment.md`（这套部署有哪些库表与工具）。skill 自身不携带任何部署信息。

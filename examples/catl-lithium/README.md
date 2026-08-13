@@ -51,16 +51,16 @@ Windows 下把 `export` 换成 `$env:FG = "…"`，并先 `$env:PYTHONIOENCODING
 
 - `compile`：9 个节点、8 条边，无孤立节点
 - `depth`：最深 7 跳（从锚点出发），跨 6 个语义层，1 条独立实质路径
-- `quality`：`ok=false`——这是**故意的**。样例只有 9 条属性事实，锚点属性数达不到
-  `probe` 档的 12 个，`two_core_ratio` 为 0（纯链，零交叉验证），信息利用率也低。
-  它演示的是「报告会怎么指出问题」，不是一张合格的图。
+- `quality`：证据没问题时 `ok=true`。样例节点少、是一条纯链（`two_core_ratio=0`）、
+  信息利用率低——这些会以 `level: guide` 出现，告诉你下一步该问哪个扇区，
+  **不会**把 `ok` 打成 false，也**不会**拦住装库。
 - `usage`：会列出 `harvest.txt` 里还没用的科目
 
 想看装库效果：
 
 ```bash
 python $FG neo4j ensure-db
-python $FG neo4j load --force        # --force 因为 quality 是 ok=false
+python $FG neo4j load
 python $FG neo4j hop --from-id E-policy-density --to-id E-szse --min-hops 5
 python $FG neo4j wipe --confirm --drop   # 用完清理
 ```
@@ -70,9 +70,9 @@ python $FG neo4j wipe --confirm --drop   # 用完清理
 1. **引文必须能在落盘原文里找到。** 试着把某条事实的 `quote` 改一个数字，重跑
    `fg fact add`，会看到 `quote 在 h-0001 的返回里找不到`。
 2. **属性用中文点分层级**，第一段是维度组，所以 `fg node` 能按组显示覆盖情况。
-3. **每条边都有具体中文动作 + 机制 + 量化属性。** 试着把某条边的 `mechanism` 删掉，
+3. **每条边都是短中文短语 + 机制 + 量化属性。** 试着把某条边的 `mechanism` 删掉，
    `fg quality` 会把它列进 `missing_mechanism`，`fg depth` 会把经过它的路径判为非实质。
-4. **推断边必须有依据。** `facts-edges.json` 里「经订单节奏改变市场盈利预期」那条是 `inference`，
+4. **推断边必须有依据。** `facts-edges.json` 里「预期传导」那条是 `inference`，
    带 `basis_fact_ids`（指向分部收入与毛利率两条事实）、`rule` 和失效条件。
    把 `basis_fact_ids` 清空会直接报错。注意它依赖 `facts-props.json` 按顺序先导入，
    这样自动分配的 ID 才是 `F00011` / `F00012`。

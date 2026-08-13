@@ -42,8 +42,13 @@ VAGUE_RELATIONS = {
     "关联关系", "有关系", "有联系", "相互影响", "存在关系", "存在关联",
     "related", "affects", "linked", "associated", "connected", "relates_to",
 }
+# 关系类型是给 Browser 图例和路径阅读用的：必须是短短语或词，不是句子。
+MIN_RELATION_LEN = 2
+MAX_RELATION_LEN = 8
 _HAN = re.compile(r"[\u4e00-\u9fff]")
 _WS = re.compile(r"\s+")
+_REL_PUNCT = re.compile(r"[。；，、？！：:;,.!?\s]")
+_REL_SENTENCE_PREFIX = re.compile(r"^(向|由|经|以|对|将|把|被)")
 
 
 def has_han(text) -> bool:
@@ -53,6 +58,44 @@ def has_han(text) -> bool:
 def flat(text) -> str:
     """去掉空白与千分位，用于宽容比对（内容差异仍然抓得住）。"""
     return _WS.sub("", str(text or "")).replace(",", "").replace("，", "")
+
+
+def relation_problems(rel, ref: str = "") -> list:
+    """关系名必须是 2–8 字中文短语。句子、空泛词、标点都会让 Browser 没法读。"""
+    text = str(rel or "").strip()
+    out = []
+    if not text:
+        out.append({"level": "error", "ref": ref, "issue": "边没有 relation"})
+        return out
+    if text in VAGUE_RELATIONS:
+        out.append({"level": "error", "ref": ref,
+                    "issue": f"关系「{text}」太空泛，读者无法据此做任何分析；"
+                             "改成 2–8 字短语，如「持股」「长协供应」「准入约束」"})
+        return out
+    if _REL_PUNCT.search(text):
+        out.append({"level": "error", "ref": ref,
+                    "issue": f"关系「{text}」含标点或空白，应是连续短语"})
+    n = len(text)
+    if n < MIN_RELATION_LEN:
+        out.append({"level": "error", "ref": ref,
+                    "issue": f"关系「{text}」太短，至少两个字，如「持股」「挂牌」"})
+    elif n > MAX_RELATION_LEN:
+        out.append({"level": "error", "ref": ref,
+                    "issue": f"关系「{text}」是 {n} 字的句子，Browser 图例读不动；"
+                             "改成 2–8 字短语，对象/品类/限定写进 attrs"})
+    elif n >= 6 and _REL_SENTENCE_PREFIX.match(text):
+        out.append({"level": "warn", "ref": ref,
+                    "issue": f"关系「{text}」像在写句子；主语是 from、宾语是 to，"
+                             "关系名只要动作本身，如「供应」而不是「向客户供应某某」"})
+    if not has_han(text):
+        out.append({"level": "warn", "ref": ref,
+                    "issue": f"关系「{text}」不是中文，用户看不懂"})
+    return out
+
+
+def relation_is_label(rel) -> bool:
+    """能否当 Neo4j 关系类型：短、具体、无标点。"""
+    return not any(p["level"] == "error" for p in relation_problems(rel))
 
 
 def quote_found(quote: str, haystack: str) -> bool:
@@ -125,15 +168,7 @@ def _target_problems(fact: dict, ref: str, entity_ids: set) -> list:
         if node and node not in entity_ids:
             out.append({"level": "error", "ref": ref, "issue": f"属性宿主 {node} 不在实体表里"})
     elif kind == "edge":
-        rel = str(target.get("relation") or "").strip()
-        if not rel:
-            out.append({"level": "error", "ref": ref, "issue": "边没有 relation"})
-        elif rel in VAGUE_RELATIONS or len(rel) < 3:
-            out.append({"level": "error", "ref": ref,
-                        "issue": f"关系「{rel}」太空泛，读者无法据此做任何分析；"
-                                 f"改成具体金融动作，如「向客户供应电芯」「由最终母公司控制」"})
-        elif not has_han(rel):
-            out.append({"level": "warn", "ref": ref, "issue": f"关系「{rel}」不是中文，用户看不懂"})
+        out.extend(relation_problems(target.get("relation"), ref))
         for side in ("from", "to"):
             node = target.get(side)
             if not node:
@@ -412,31 +447,37 @@ def node_richness(graph: dict, anchors: list) -> dict:
 
 def edge_quality(graph: dict) -> dict:
     total = len(graph["edges"])
-    vague, no_mech, no_attr, no_fact, non_han, layered = [], [], [], [], [], Counter()
+    vague, sentence, no_mech, no_attr, no_fact, non_han, layered = (
+        [], [], [], [], [], [], Counter())
     attr_counts = []
     for edge in graph["edges"]:
-        rel = edge["relation"].strip()
-        if not rel or rel in VAGUE_RELATIONS or len(rel) < 3:
+        rel = (edge.get("relation") or "").strip()
+        problems = relation_problems(rel, edge.get("id") or "")
+        if any(p["level"] == "error" and "空泛" in p["issue"] for p in problems):
             vague.append(edge["id"])
+        if any(p["level"] == "error" and ("句子" in p["issue"] or "标点" in p["issue"])
+               for p in problems):
+            sentence.append(edge["id"])
         if not has_han(rel):
             non_han.append(edge["id"])
-        if not edge["mechanism"].strip():
+        if not (edge.get("mechanism") or "").strip():
             no_mech.append(edge["id"])
-        attr_counts.append(len(edge["attrs"]))
-        if not edge["attrs"]:
+        attr_counts.append(len(edge.get("attrs") or {}))
+        if not edge.get("attrs"):
             no_attr.append(edge["id"])
-        if not edge["fact_ids"]:
+        if not edge.get("fact_ids"):
             no_fact.append(edge["id"])
-        if edge["layer"] in SEMANTIC_LAYERS:
+        if edge.get("layer") in SEMANTIC_LAYERS:
             layered[edge["layer"]] += 1
     analyzable = [e for e in graph["edges"]
-                  if e["mechanism"].strip() and e["attrs"] and e["fact_ids"]
-                  and e["relation"].strip() not in VAGUE_RELATIONS]
+                  if (e.get("mechanism") or "").strip() and e.get("attrs") and e.get("fact_ids")
+                  and relation_is_label(e.get("relation"))]
     return {
         "edge_count": total,
         "analyzable_count": len(analyzable),
         "analyzable_ratio": _ratio(len(analyzable), total),
         "vague_relations": vague,
+        "sentence_relations": sentence,
         "non_chinese_relations": non_han,
         "missing_mechanism": no_mech,
         "missing_attrs": no_attr,
@@ -446,6 +487,14 @@ def edge_quality(graph: dict) -> dict:
         "layers_used": len(layered),
         "relation_vocabulary": len({e["relation"] for e in graph["edges"]}),
     }
+
+
+def load_blockers(report: dict | None) -> list:
+    """装库只拦证据完整性（引文找不到、端点悬空），不拦节点数/边数/跳数。"""
+    if not report:
+        return []
+    return [f for f in report.get("findings", [])
+            if f.get("level") == "error" and f.get("area") == "证据"]
 
 
 def fact_quality(facts: list) -> dict:

@@ -129,7 +129,7 @@ fg env --init      # 第一次用，先建一个空档案
 
 ```bash
 fg harvest list --state unmined     # 还没挖的
-fg harvest mine h-0001 --entities entities.json --facts facts.json --done
+fg harvest mine h-0001 --done    # 读取会话 drafts/ 下的实体与事实草稿
 ```
 
 挖掘的粒度是**逐表、逐行、逐单元格**：
@@ -175,7 +175,7 @@ fg search "宁德时代2025年年报合并利润表全部科目与数值，不�
 fg harvest show h-0001 --part provenance          # 拿到 82 个中文科目名
 fg harvest show h-0001 --part data --grep "营业|利润|费用"
 # 逐行写成事实，quote 摘整行
-fg harvest mine h-0001 --facts facts.json --done
+fg harvest mine h-0001 --done
 fg usage                                          # 看这次挖到了多少
 ```
 

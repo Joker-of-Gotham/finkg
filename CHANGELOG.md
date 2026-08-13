@@ -2,6 +2,14 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] — 2026-08-13
+
+针对实际使用中的三个严重问题：根目录堆文件、边名写成句子、规模/跳数硬门禁。
+
+- **草稿进会话 `drafts/`。** `fg template` 默认写入 `financial-graph-sessions/<会话>/drafts/`；相对路径不再落到工作区根目录。`fg harvest mine --done` 自动读取 `drafts/entities.json` 与 `drafts/fact*.json`。`fg brief` 会点名根目录 stray 文件。
+- **关系类型改为 2–8 字中文短语。** 对象、品类、限定写进 `attrs`。整句（如「向客户长协供应电池级碳酸锂」）与空泛词同样判 error。
+- **去掉节点数/边数/跳数门槛。** `quality` 的 `ok=false` 只表示证据缺陷或边名不可读。规模与扇区缺口变成 `level: guide`，并给出下一条该问的检索。`fg neo4j load` 只拦引文找不到、端点悬空；不再因为「不够 120 个节点」拒装。
+
 ## [1.0.0] — 2026-08-13
 
 首个公开版本。这是一次彻底重写：上一代实现（八道阻断 Gate、HMAC attestation、一次性 resume token、

@@ -206,6 +206,53 @@ class Session:
     def reports_dir(self) -> Path:
         return self.root / "reports"
 
+    @property
+    def drafts_dir(self) -> Path:
+        """挖掘草稿（entities.json / facts.json）只放这里，不要堆工作区根目录。"""
+        return self.root / "drafts"
+
+    def ensure_layout(self) -> "Session":
+        self.harvest_dir.mkdir(parents=True, exist_ok=True)
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
+        self.drafts_dir.mkdir(parents=True, exist_ok=True)
+        return self
+
+    def resolve_input(self, spec: str | Path) -> Path:
+        """读文件：绝对路径原样；相对路径优先会话 drafts/，再会话根，最后 cwd。"""
+        path = Path(spec)
+        if path.is_absolute():
+            if not path.exists():
+                raise StoreError(f"文件不存在: {path}")
+            return path
+        candidates = []
+        if len(path.parts) > 1:
+            candidates.append(self.root / path)
+        candidates.extend([self.drafts_dir / path.name, self.root / path, Path.cwd() / path])
+        seen = set()
+        for candidate in candidates:
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            if resolved.is_file():
+                return resolved
+        raise StoreError(
+            f"找不到 {spec}。草稿请写到 {self.drafts_dir}，不要堆在工作区根目录。")
+
+    def resolve_output(self, spec: str | Path | None, default_name: str) -> Path:
+        """写文件：未指定或相对文件名 → 会话 drafts/；带目录的相对路径相对会话根。"""
+        if spec is None:
+            return self.drafts_dir / default_name
+        path = Path(spec)
+        if path.is_absolute():
+            return path
+        if len(path.parts) > 1:
+            return self.root / path
+        return self.drafts_dir / path.name
+
     # ---- 生命周期 ------------------------------------------------------
     @classmethod
     def create(cls, sessions_root: Path, session_id: str, meta: dict) -> "Session":
@@ -213,8 +260,7 @@ class Session:
         if root.exists():
             raise StoreError(f"会话已存在: {root}（换个 --id，或直接继续用它）")
         obj = cls(root)
-        obj.harvest_dir.mkdir(parents=True, exist_ok=True)
-        obj.reports_dir.mkdir(parents=True, exist_ok=True)
+        obj.ensure_layout()
         payload = {"schema": SCHEMA, "session_id": session_id, "created_at": now(),
                    "updated_at": now(), **meta}
         write_json(obj.meta_path, payload)
